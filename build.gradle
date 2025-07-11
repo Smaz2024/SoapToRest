@@ -1,0 +1,69 @@
+plugins {
+    id 'java'
+    id 'war'
+    id "io.openliberty.tools.gradle.Liberty" version "3.9.4"
+    id 'com.diffplug.spotless' version '6.25.0'
+}
+
+group = 'com.example'
+version = '1.0.0'
+sourceCompatibility = '21'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    providedCompile 'jakarta.platform:jakarta.jakartaee-api:10.0.0'
+    providedCompile 'org.eclipse.microprofile:microprofile:6.0'
+
+    implementation 'org.glassfish:jakarta.json:2.0.1'
+    implementation 'org.hibernate.validator:hibernate-validator:8.0.1.Final'
+    implementation 'org.glassfish:jakarta.el:4.0.2'
+    implementation 'com.fasterxml.woodstox:woodstox-core:6.5.1'
+    implementation 'io.opentelemetry:opentelemetry-api:1.51.0'
+    implementation 'org.slf4j:slf4j-api:2.0.13'
+    implementation 'jakarta.enterprise.concurrent:jakarta.enterprise.concurrent-api:3.0.4'
+
+    compileOnly 'org.projectlombok:lombok:1.18.32'
+    annotationProcessor 'org.projectlombok:lombok:1.18.32'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.10.0'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.18.0'
+    testImplementation 'org.mockito:mockito-core:5.8.0'
+    testImplementation 'org.glassfish.jersey.core:jersey-common:3.1.3'
+    testImplementation 'org.glassfish.jersey.inject:jersey-hk2:3.1.3'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.0'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+war {
+    archiveFileName = 'gateway.war'
+}
+
+ext {
+    liberty.server.var.'default.http.port' = '9080'
+    liberty.server.var.'default.https.port' = '9443'
+    liberty.server.var.'default.context.root' = '/gateway'
+}
+
+spotless {
+    enforceCheck = false
+    java {
+        googleJavaFormat('1.22.0')
+        removeUnusedImports()
+        endWithNewline()
+    }
+}
+
+// Ensure code is formatted before compilation
+compileJava.dependsOn 'spotlessApply'
+
+// Stop Liberty server before cleaning
+clean.dependsOn 'libertyStop'
+
+

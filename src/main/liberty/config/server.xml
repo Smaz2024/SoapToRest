@@ -1,0 +1,116 @@
+<!-- src/main/liberty/config/server.xml -->
+<server description="SOAP to REST Gateway Server">
+
+    <!--
+        The featureManager lists all the Jakarta EE and MicroProfile specifications
+        that the Open Liberty runtime should enable. Each feature provides the necessary
+        APIs and implementation for a specific technology.
+    -->
+    <featureManager>
+        <!-- Core JAX-WS feature for creating SOAP web services. -->
+        <feature>xmlWS-4.0</feature>
+        <!-- MicroProfile feature for creating type-safe REST clients. -->
+        <feature>mpRestClient-3.0</feature>
+        <!-- MicroProfile feature for building resilient, fault-tolerant applications. -->
+        <feature>mpFaultTolerance-4.0</feature>
+        <!-- MicroProfile feature for externalizing application configuration. -->
+        <feature>mpConfig-3.0</feature>
+        <!-- Core CDI feature for dependency injection. -->
+        <feature>cdi-4.0</feature>
+        <!-- Core JAX-RS feature for creating RESTful web services. -->
+        <feature>restfulWS-3.1</feature>
+        <!-- Jakarta EE feature for processing JSON data (streaming API). -->
+        <feature>jsonp-2.1</feature>
+        <!-- Jakarta EE feature for binding Java objects to/from JSON. -->
+        <feature>jsonb-3.0</feature>
+        <!-- MicroProfile feature for distributed tracing with OpenTelemetry. -->
+        <feature>mpTelemetry-1.0</feature>
+        <!-- MicroProfile feature for exposing application health checks. -->
+        <feature>mpHealth-4.0</feature>
+        <!-- MicroProfile feature for exposing application metrics. -->
+        <feature>mpMetrics-5.0</feature>
+
+        <feature>beanValidation-3.0</feature>
+    </featureManager>
+
+    <!--
+       It tells CDI to only scan JARs that contain a beans.xml file,
+       which significantly improves startup time.
+   -->
+    <cdi enableImplicitBeanArchives="false"/>
+    <!--
+        Configures the server's HTTP listener, defining the host and ports.
+        The host="*" setting makes the server accessible from any network interface.
+    -->
+    <httpEndpoint id="defaultHttpEndpoint"
+                  host="*"
+                  httpPort="9080"
+                  httpsPort="9443" />
+
+    <!--
+        Manages the pool of connections for outbound requests, which is critical
+        for the performance of the MicroProfile Rest Client.
+        - maxPoolSize: The maximum number of concurrent connections allowed.
+        - minPoolSize: The number of connections to maintain in the pool.
+        - maxIdleTime: How long an unused connection can remain in the pool.
+        - agedTimeout: The maximum lifetime of a connection.
+    -->
+    <connectionManager id="defaultConnectionManager"
+                       maxPoolSize="50"
+                       minPoolSize="5"
+                       maxIdleTime="30s"
+                       agedTimeout="300s" />
+
+    <!-- Defines a server-wide variable that can be reused in other parts of the configuration. -->
+    <variable name="appLocation" value="gateway.war"/>
+
+    <!--
+        Configures the keystore for holding the server's SSL/TLS certificate.
+        This is necessary for enabling HTTPS.
+    -->
+    <keyStore id="defaultKeyStore"
+              password="changeit"
+              location="resources/security/key.p12"
+              type="PKCS12" />
+
+    <!--
+        Defines the default SSL configuration for the server, linking it to the keystore.
+        - securityLevel: Enforces strong cipher suites.
+        - sslProtocol: Specifies the TLS protocol version to use for secure connections.
+    -->
+    <ssl id="defaultSSLConfig"
+         keyStoreRef="defaultKeyStore"
+         securityLevel="HIGH"
+         sslProtocol="TLSv1.2" />
+
+    <!--
+        Deploys the web application to the server.
+        - location: The path to the WAR file, using the variable defined above.
+        - contextRoot: The URL path under which the application will be accessible.
+    -->
+    <webApplication location="${appLocation}"
+                    contextRoot="/gateway"
+                    id="gateway-app" />
+
+    <!--
+        Configures the MicroProfile Telemetry feature to export trace data.
+        - otlpEndpoint: The address of the OpenTelemetry Collector.
+        - exporterType: Specifies the OpenTelemetry Protocol (OTLP).
+        - serviceName: The name that will identify this service in tracing UIs.
+        - protocol: The transport protocol for sending traces (gRPC is standard).
+    -->
+    <mpTelemetry otlpEndpoint="http://localhost:4317"
+                 exporterType="otlp"
+                 serviceName="soap-rest-gateway"
+                 protocol="grpc"/>
+
+    <!--
+        Configures the server's logging behavior.
+        - consoleLogLevel: The minimum level of messages to show on the console.
+        - traceSpecification: Provides fine-grained control over logging levels for
+          specific packages. Here, it sets the default to INFO but enables more
+          detailed DEBUG logging for our application's code.
+    -->
+    <logging consoleLogLevel="INFO"
+             traceSpecification="*=info:com.example=debug" />
+</server>
