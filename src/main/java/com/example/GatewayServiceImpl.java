@@ -118,6 +118,8 @@ public class GatewayServiceImpl implements GatewayService {
       // Step 3: Block and wait for the asynchronous pipeline to complete.
       // This is the bridge between the async internal logic and the sync JAX-WS contract.
       // A timeout is applied to prevent indefinite blocking.
+      // This timeout value is optional but used for defensive programming. MP timeout is used
+      // for who method and fault tolerance.If that fails, still there is a second level check
       return asyncProcessingChain.toCompletableFuture().get(requestTimeout, TimeUnit.MILLISECONDS);
 
     } catch (ConstraintViolationException e) {

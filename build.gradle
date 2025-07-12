@@ -13,9 +13,10 @@ plugins {
     id 'com.diffplug.spotless' version '6.25.0'
 }
 
-// Basic project information.
+// Basic project information used for packaging and identification.
 group = 'com.example'
 version = '1.0.0'
+// Sets the Java version for source code compatibility.
 sourceCompatibility = '21'
 
 // Specifies where Gradle should look for project dependencies.
@@ -28,9 +29,11 @@ repositories {
 dependencies {
     // 'providedCompile' dependencies are required for compilation but are provided by the
     // target runtime (Open Liberty). They are NOT packaged into the WAR file.
-    // This is standard for Jakarta EE and MicroProfile APIs.
+    // This is the standard scope for Jakarta EE and MicroProfile APIs.
     providedCompile 'jakarta.platform:jakarta.jakartaee-api:10.0.0'
     providedCompile 'org.eclipse.microprofile:microprofile:6.0'
+    // This API is needed for the ManagedExecutorService and is provided by the server.
+    providedCompile 'jakarta.enterprise.concurrent:jakarta.enterprise.concurrent-api:3.0.4'
 
     // 'implementation' dependencies are required by the application at runtime and will be
     // included in the WEB-INF/lib directory of the generated WAR file.
@@ -40,8 +43,11 @@ dependencies {
     implementation 'com.fasterxml.woodstox:woodstox-core:6.5.1'
     implementation 'io.opentelemetry:opentelemetry-api:1.51.0'
     implementation 'org.slf4j:slf4j-api:2.0.13'
-    // This API is needed for the ManagedExecutorService.
-    implementation 'jakarta.enterprise.concurrent:jakarta.enterprise.concurrent-api:3.0.4'
+
+    // 'libertyRuntime' specifies the exact version of the Open Liberty runtime to be
+    // downloaded and used by the Liberty Gradle plugin.
+    libertyRuntime 'io.openliberty:openliberty-runtime:23.0.0.10'
+
 
     // 'compileOnly' dependencies are needed only during compilation and are not included in the
     // final artifact. Lombok is a classic example, as it generates code at compile time.
@@ -62,13 +68,14 @@ dependencies {
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.0'
 }
 
-// Configure the test task to use JUnit 5
+// Configure the test task to use the JUnit Platform (for JUnit 5).
 test {
     useJUnitPlatform()
 }
 
 // Customizes the generated WAR file.
 war {
+    // Sets a specific name for the output WAR file.
     archiveFileName = 'gateway.war'
 }
 
@@ -87,7 +94,7 @@ spotless {
     // When false, 'spotlessApply' will just fix the formatting.
     enforceCheck = false // 'true' to fail build on format issues, 'false' to just apply
     java {
-        // Specifies the style guide to use.
+        // Specifies the style guide to use (Google's Java style).
         googleJavaFormat('1.22.0')
         // Additional cleanup rules.
         removeUnusedImports()

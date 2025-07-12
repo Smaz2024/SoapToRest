@@ -29,19 +29,32 @@
         <feature>mpHealth-4.0</feature>
         <!-- MicroProfile feature for exposing application metrics. -->
         <feature>mpMetrics-5.0</feature>
-
+        <!-- Jakarta EE feature for managing concurrent tasks. -->
+        <feature>concurrent-3.0</feature>
+        <!-- Jakarta EE feature for validating Java objects using annotations. -->
         <feature>beanValidation-3.0</feature>
     </featureManager>
 
-    <mpMetrics appNameScope="false"/>
     <!--
-       It tells CDI to only scan JARs that contain a beans.xml file,
-       which significantly improves startup time.
-   -->
+        Configures MicroProfile Metrics to prevent tagging metrics with an 'mp_app'
+        label. Setting appNameScope to "false" ensures that metrics from different
+        sources (e.g., application vs. health checks) have consistent tag sets,
+        avoiding potential conflicts.
+    -->
+    <mpMetrics appNameScope="false"/>
+
+    <!--
+        Optimizes CDI (Contexts and Dependency Injection) startup performance.
+        By setting enableImplicitBeanArchives to "false", it tells CDI to only
+        scan for beans in archives (JARs) that explicitly contain a beans.xml file.
+    -->
     <cdi enableImplicitBeanArchives="false"/>
+
     <!--
         Configures the server's HTTP listener, defining the host and ports.
-        The host="*" setting makes the server accessible from any network interface.
+        - host="*": Makes the server accessible from any network interface.
+        - httpPort: The port for unencrypted HTTP traffic.
+        - httpsPort: The port for encrypted HTTPS traffic.
     -->
     <httpEndpoint id="defaultHttpEndpoint"
                   host="*"
@@ -52,9 +65,9 @@
         Manages the pool of connections for outbound requests, which is critical
         for the performance of the MicroProfile Rest Client.
         - maxPoolSize: The maximum number of concurrent connections allowed.
-        - minPoolSize: The number of connections to maintain in the pool.
-        - maxIdleTime: How long an unused connection can remain in the pool.
-        - agedTimeout: The maximum lifetime of a connection.
+        - minPoolSize: The number of connections to maintain in the pool, even when idle.
+        - maxIdleTime: How long an unused connection can remain in the pool before being closed.
+        - agedTimeout: The maximum lifetime of a connection, after which it will be replaced.
     -->
     <connectionManager id="defaultConnectionManager"
                        maxPoolSize="50"
@@ -67,7 +80,10 @@
 
     <!--
         Configures the keystore for holding the server's SSL/TLS certificate.
-        This is necessary for enabling HTTPS.
+        This is necessary for enabling HTTPS on port 9443.
+        - password: The password to access the keystore. (Note: Should be secured in production).
+        - location: The path to the keystore file relative to the server directory.
+        - type: The format of the keystore file.
     -->
     <keyStore id="defaultKeyStore"
               password="changeit"
@@ -76,7 +92,8 @@
 
     <!--
         Defines the default SSL configuration for the server, linking it to the keystore.
-        - securityLevel: Enforces strong cipher suites.
+        - keyStoreRef: A reference to the <keyStore> element defined above.
+        - securityLevel: Enforces strong cipher suites to enhance security.
         - sslProtocol: Specifies the TLS protocol version to use for secure connections.
     -->
     <ssl id="defaultSSLConfig"
@@ -87,7 +104,9 @@
     <!--
         Deploys the web application to the server.
         - location: The path to the WAR file, using the variable defined above.
-        - contextRoot: The URL path under which the application will be accessible.
+        - contextRoot: The URL path under which the application will be accessible
+          (e.g., http://localhost:9080/gateway).
+        - id: A unique identifier for this application deployment.
     -->
     <webApplication location="${appLocation}"
                     contextRoot="/gateway"
@@ -95,10 +114,10 @@
 
     <!--
         Configures the MicroProfile Telemetry feature to export trace data.
-        - otlpEndpoint: The address of the OpenTelemetry Collector.
-        - exporterType: Specifies the OpenTelemetry Protocol (OTLP).
-        - serviceName: The name that will identify this service in tracing UIs.
-        - protocol: The transport protocol for sending traces (gRPC is standard).
+        - otlpEndpoint: The address of the OpenTelemetry Collector where traces will be sent.
+        - exporterType: Specifies the OpenTelemetry Protocol (OTLP) as the export format.
+        - serviceName: The name that will identify this service in tracing UIs like Jaeger or Zipkin.
+        - protocol: The transport protocol for sending traces (gRPC is standard and efficient).
     -->
     <mpTelemetry otlpEndpoint="http://localhost:4317"
                  exporterType="otlp"
@@ -106,11 +125,22 @@
                  protocol="grpc"/>
 
     <!--
+        Defines a managed thread pool that can be injected and used by the application
+        for running asynchronous tasks. This is the standard Jakarta EE way to handle
+        concurrency safely within a managed environment.
+        - jndiName: The JNDI name used to look up this executor service in the code.
+        - maxAsync: The maximum number of tasks that can be running concurrently.
+    -->
+    <managedExecutorService
+            jndiName="java:comp/env/com.example.GatewayServiceImpl/managedExecutor"
+            maxAsync="10"/>
+
+    <!--
         Configures the server's logging behavior.
-        - consoleLogLevel: The minimum level of messages to show on the console.
+        - consoleLogLevel: The minimum level of messages to show on the console (e.g., stdout).
         - traceSpecification: Provides fine-grained control over logging levels for
-          specific packages. Here, it sets the default to INFO but enables more
-          detailed DEBUG logging for our application's code.
+          specific packages. Here, it sets the default for all packages to INFO but
+          enables more detailed DEBUG logging for our application's code (com.example.*).
     -->
     <logging consoleLogLevel="INFO"
              traceSpecification="*=info:com.example=debug" />
