@@ -33,6 +33,7 @@
         <feature>beanValidation-3.0</feature>
     </featureManager>
 
+    <mpMetrics appNameScope="false"/>
     <!--
        It tells CDI to only scan JARs that contain a beans.xml file,
        which significantly improves startup time.

@@ -1,20 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-    This file is the CDI (Contexts and Dependency Injection) bean deployment descriptor.
-    Its presence in the WEB-INF directory enables CDI for this web application archive (WAR).
-    It is used to configure how the CDI container discovers and manages beans.
--->
 <beans xmlns="https://jakarta.ee/xml/ns/jakartaee"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/beans_4_0.xsd"
-       <!--
-           The 'bean-discovery-mode' attribute controls which classes are considered beans by the CDI container.
-           - "all": The container scans every class in this archive. Any class that meets the implicit
-             bean requirements becomes a managed bean. This is simple but can impact startup performance,
-             especially in large applications.
-           - "annotated": (Recommended for better performance) The container only processes classes that have a
-             bean-defining annotation (e.g., @ApplicationScoped, @RequestScoped, @Inject).
-           - "none": CDI is disabled for this archive.
-       -->
+       version="4.0"
        bean-discovery-mode="all">
 </beans>

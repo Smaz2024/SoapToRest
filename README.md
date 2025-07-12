@@ -127,3 +127,18 @@ The integration tests (e.g., `RestServiceClientIT.java`) use **WireMock** to sim
 - **`server.xml`**: The primary server configuration file. It defines which MicroProfile and Jakarta EE features are enabled, configures logging, telemetry, and deploys the application.
 - **`build.gradle`**: The `ext` block in this file sets server variables like HTTP ports, which are injected into `server.xml`.
 - **MicroProfile Config**: Application-level properties (e.g., timeouts) are managed via MicroProfile Config. These can be provided through `server.xml`, system properties, or environment variables.
+
+## Observability Endpoints
+
+Once the server is running, you can access the following endpoints for monitoring and diagnostics:
+
+-   **WSDL**: `http://localhost:9080/gateway/GatewayService?wsdl`
+  -   The service definition for SOAP clients.
+-   **Health (Liveness)**: `http://localhost:9080/health/live`
+  -   Checks if the server process is running.
+-   **Health (Readiness)**: `http://localhost:9080/health/ready`
+  -   Checks if the application is ready to handle requests.
+-   **Metrics (Prometheus Format)**: `http://localhost:9080/metrics`
+  -   Exposes performance metrics for monitoring systems like Prometheus.
+-   **Metrics (JSON Format)**: `http://localhost:9080/metrics?format=json`
+  -   Provides the same metrics in a human-readable JSON format.v
