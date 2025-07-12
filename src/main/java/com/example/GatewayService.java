@@ -6,7 +6,7 @@ import jakarta.jws.WebService;
 import jakarta.jws.soap.SOAPBinding;
 
 // =================================================================================
-// 1. SOAP Service Interface (SEI) - CORRECTED
+// 1. SOAP Service Interface (SEI)
 // =================================================================================
 /**
  * Defines the service endpoint interface (SEI) for the SOAP gateway. The method signature is now
