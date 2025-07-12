@@ -57,6 +57,7 @@ dependencies {
     testImplementation 'org.mockito:mockito-core:5.8.0'
     testImplementation 'org.glassfish.jersey.core:jersey-common:3.1.3'
     testImplementation 'org.glassfish.jersey.inject:jersey-hk2:3.1.3'
+    testImplementation 'com.github.tomakehurst:wiremock-jre8-standalone:3.0.1'
     // 'testRuntimeOnly' dependencies are required only for running tests, not compiling them.
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.0'
 }
