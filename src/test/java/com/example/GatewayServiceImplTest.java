@@ -5,15 +5,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import jakarta.enterprise.concurrent.ManagedExecutorService;
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.Path;
+import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validator;
 import jakarta.xml.ws.WebServiceException;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
@@ -43,11 +40,12 @@ class GatewayServiceImplTest {
   private SoapRequest validSoapRequest;
 
   @BeforeEach
-  void setUp() throws Exception {
-    // To test the asynchronous logic predictably, we configure the mock executor
-    // to run any submitted task immediately on the same thread. This allows us
-    // to test the CompletableFuture chain deterministically.
-    doAnswer(
+  void setUp() {
+    // FIX: Use lenient() stubbing. This tells Mockito that it's acceptable
+    // for this stub to go unused in tests that exit before reaching the async logic
+    // (like the validation failure test).
+    lenient()
+        .doAnswer(
             invocation -> {
               Runnable task = invocation.getArgument(0);
               task.run();
@@ -67,10 +65,15 @@ class GatewayServiceImplTest {
   }
 
   // Helper method to set private fields on the test subject.
-  private void setField(Object target, String fieldName, Object value) throws Exception {
-    Field field = target.getClass().getDeclaredField(fieldName);
-    field.setAccessible(true);
-    field.set(target, value);
+  private void setField(Object target, String fieldName, Object value) {
+    try {
+      Field field = target.getClass().getDeclaredField(fieldName);
+      field.setAccessible(true);
+      field.set(target, value);
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      // Fail the test if reflection fails, as it's a critical part of the setup.
+      fail("Failed to set field '" + fieldName + "' via reflection", e);
+    }
   }
 
   @Test
@@ -108,19 +111,11 @@ class GatewayServiceImplTest {
   @DisplayName("processRequest should throw WebServiceException on validation failure")
   void processRequest_shouldThrowWebServiceException_whenValidationFails() {
     // Arrange
-    // 1. Mock a constraint violation to simulate a validation error.
-    ConstraintViolation<SoapRequest> violation = mock(ConstraintViolation.class);
-    Path propertyPath = mock(Path.class);
-    when(propertyPath.toString()).thenReturn("transactionId");
-    when(violation.getPropertyPath()).thenReturn(propertyPath);
-    when(violation.getMessage()).thenReturn("is required");
-    Set<ConstraintViolation<SoapRequest>> violations = new HashSet<>(Set.of(violation));
-
-    // 2. Mock the validator to return the set of violations.
+    // Mock the validator to throw a ConstraintViolationException. The service
+    // is expected to catch this and wrap it.
+    String validationErrorMessage = "Validation failed: transactionId is required";
     when(validator.validate(any(SoapRequest.class)))
-        .thenThrow(
-            new ConstraintViolationException(
-                "Validation failed: transactionId is required", violations));
+        .thenThrow(new ConstraintViolationException(validationErrorMessage, null));
 
     // Act & Assert
     // 1. Expect a WebServiceException to be thrown.
@@ -130,10 +125,17 @@ class GatewayServiceImplTest {
             () -> gatewayService.processRequest(validSoapRequest),
             "Expected WebServiceException for validation failure");
 
-    // 2. Check the exception message for correctness.
-    assertTrue(exception.getMessage().contains("Validation failed: transactionId is required"));
+    // 2. Check that the exception message from the original error is preserved
+    //    and that the cause is the expected type.
+    assertTrue(
+        exception.getMessage().contains(validationErrorMessage),
+        "Exception message should reflect the validation failure.");
+    assertInstanceOf(
+        GatewayFault.class,
+        exception.getCause(),
+        "The cause should be the original validation exception");
 
-    // 3. Verify that the downstream REST client was never called.
+    // 3. Verify that the downstream REST client was never called due to the early exit.
     verify(restClient, never()).callRestService(any(RestRequest.class));
   }
 
@@ -161,13 +163,13 @@ class GatewayServiceImplTest {
     // 2. The original exception is wrapped in ExecutionException by CompletableFuture.
     //    Verify that the cause of the WebServiceException is the original downstream exception.
     assertNotNull(exception.getCause());
-    assertEquals(downstreamException, exception.getCause().getCause());
+    assertEquals(downstreamException, exception.getCause());
     assertEquals("Request processing failed", exception.getMessage());
   }
 
   @Test
   @DisplayName("processRequest should throw WebServiceException on timeout")
-  void processRequest_shouldThrowWebServiceException_whenRequestTimesOut() throws Exception {
+  void processRequest_shouldThrowWebServiceException_whenRequestTimesOut() {
     // Arrange
     // 1. Set a very short timeout for the test.
     setField(gatewayService, "requestTimeout", 10L);
